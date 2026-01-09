@@ -32,9 +32,22 @@ app.post('/api/:endpoint', async (req, res) => {
     });
 
     const data = await response.text();
-    console.log(`[PROXY] ${endpoint} - Response:`, data.substring(0, 200));
+    console.log(`[PROXY] ${endpoint} - Status: ${response.status}`);
+    console.log(`[PROXY] ${endpoint} - Response:`, data.substring(0, 500));
 
-    res.status(response.status).json(JSON.parse(data));
+    // Try to parse as JSON
+    try {
+      const jsonData = JSON.parse(data);
+      res.status(response.status).json(jsonData);
+    } catch (parseError) {
+      console.error(`[PROXY] JSON Parse Error:`, parseError.message);
+      console.error(`[PROXY] Raw Response:`, data);
+      res.status(500).json({ 
+        error: 'JSON Parse Error', 
+        message: parseError.message,
+        rawResponse: data.substring(0, 500)
+      });
+    }
   } catch (error) {
     console.error(`[PROXY] Error on ${endpoint}:`, error);
     res.status(500).json({ 
